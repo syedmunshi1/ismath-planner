@@ -98,7 +98,7 @@ export async function getSendLog(planDate: string): Promise<{ status: string; se
     SELECT status, sent_at::text, error_msg
     FROM send_log WHERE plan_date = ${planDate}::date
   `;
-  return result.rows[0] ?? null;
+  return (result.rows[0] as { status: string; sent_at: string; error_msg: string | null } | undefined) ?? null;
 }
 
 export async function upsertSendLog(planDate: string, status: 'success' | 'failed', errorMsg?: string): Promise<void> {
