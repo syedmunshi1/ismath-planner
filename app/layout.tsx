@@ -16,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <nav className="bg-teal-700 text-white px-4 py-3 flex gap-6">
           <a href="/" className="font-semibold hover:opacity-80">🏠 Plan</a>
           <a href="/schedule" className="hover:opacity-80">📅 Schedule</a>
+          <a href="/weekplan" className="hover:opacity-80">📆 7-Day Plan</a>
           <a href="/history" className="hover:opacity-80">📋 History</a>
         </nav>
         <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>

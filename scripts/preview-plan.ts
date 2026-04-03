@@ -554,13 +554,21 @@ function buildPlan(dateStr: string): DailyPlan {
 }
 
 // ── Main ──────────────────────────────────────────────────────────
-const dateArg = process.argv[2];
-const targetDate = dateArg ?? addDays(toISTDate(new Date()), 1);
+const args = process.argv.slice(2);
+const isWeek = args.includes('--week');
+const dateArg = args.find(a => !a.startsWith('--'));
+const startDate = dateArg ?? addDays(toISTDate(new Date()), 1);
+const days = isWeek ? 7 : 1;
 
-console.log(`\nGenerating plan for: ${targetDate}\n`);
+const divider = '═'.repeat(60);
 
-const plan = buildPlan(targetDate);
-const output = formatPlan(plan);
-console.log(output);
-console.log('\n---');
-console.log(`Combo: ${plan.combo} | Recovery: ${plan.isRecoveryDay} | Spleen day: ${plan.spleenDay}`);
+for (let i = 0; i < days; i++) {
+  const targetDate = addDays(startDate, i);
+  if (i > 0) console.log('\n' + divider + '\n');
+  if (isWeek) console.log(`📅 Day ${i + 1} of 7\n`);
+  const plan = buildPlan(targetDate);
+  const output = formatPlan(plan);
+  console.log(output);
+  console.log('\n---');
+  console.log(`Combo: ${plan.combo} | Recovery: ${plan.isRecoveryDay} | Spleen day: ${plan.spleenDay}`);
+}
