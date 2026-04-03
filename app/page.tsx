@@ -1,101 +1,141 @@
-import Image from "next/image";
+'use client';
+import { useEffect, useState } from 'react';
+import { DailyPlan, PlanSlot } from '@/lib/types';
 
-export default function Home() {
+const SLOT_EMOJIS: Record<string, string> = {
+  on_waking: '⏰', breakfast: '🍳', mid_morning: '🫙', lunch: '🍚',
+  post_lunch: '🍫', pre_session: '⚡', during_session: '💧',
+  post_session: '💪', evening_snack: '🌿', late_evening: '🍲',
+  dinner: '🍽️', bedtime: '🌙',
+};
+
+const SLOT_LABELS: Record<string, string> = {
+  on_waking: 'ON WAKING', breakfast: 'BREAKFAST', mid_morning: 'MID MORNING',
+  lunch: 'LUNCH', post_lunch: 'POST LUNCH', pre_session: 'PRE SESSION',
+  during_session: 'DURING SESSION', post_session: 'POST SESSION',
+  evening_snack: 'EVENING SNACK', late_evening: 'LATE EVENING',
+  dinner: 'DINNER', bedtime: 'BEDTIME',
+};
+
+const COMBO_LABELS: Record<number, string> = {
+  1: 'Gym Morning', 2: 'Skating Evening', 3: 'Full Rest Day', 4: 'Gym + Skating',
+};
+
+export default function HomePage() {
+  const [plan, setPlan] = useState<DailyPlan | null>(null);
+  const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'already_sent'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const pin = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('pin') ?? ''
+    : '';
+
+  useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().slice(0, 10);
+
+    fetch(`/api/mealplan/${dateStr}?pin=${pin}`)
+      .then((r) => r.json())
+      .then((data) => { setPlan(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [pin]);
+
+  const handleSend = async (force = false) => {
+    setSendStatus('sending');
+    setErrorMsg('');
+    const res = await fetch(`/api/send?pin=${pin}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force }),
+    });
+    const data = await res.json();
+    if (res.status === 409) {
+      setSendStatus('already_sent');
+    } else if (res.ok) {
+      setSendStatus('sent');
+    } else {
+      setSendStatus('error');
+      setErrorMsg(data.message);
+    }
+  };
+
+  if (loading) return <div className="py-8 text-center text-gray-500">Loading plan...</div>;
+  if (!plan) return <div className="py-8 text-center text-red-500">Failed to load plan</div>;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Tomorrow&apos;s Plan</h1>
+        <p className="text-gray-500 mt-1">
+          {new Date(plan.date + 'T00:00:00').toLocaleDateString('en-IN', {
+            weekday: 'long', day: 'numeric', month: 'long',
+          })}
+          {' · '}
+          <span className="font-medium text-teal-700">{COMBO_LABELS[plan.combo]}</span>
+        </p>
+        {plan.isRecoveryDay && (
+          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm">
+            🔄 <strong>Recovery Day</strong> — See recovery notes in plan below
+          </div>
+        )}
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <div className="mb-6 flex gap-3 items-center flex-wrap">
+        {sendStatus === 'sent' ? (
+          <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-medium">Sent ✓</span>
+        ) : sendStatus === 'already_sent' ? (
+          <span className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg">Already sent today</span>
+        ) : (
+          <button
+            onClick={() => handleSend(false)}
+            disabled={sendStatus === 'sending'}
+            className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50"
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            {sendStatus === 'sending' ? 'Sending...' : '📲 Send WhatsApp Now'}
+          </button>
+        )}
+        {(sendStatus === 'sent' || sendStatus === 'already_sent') && (
+          <button onClick={() => handleSend(true)} className="text-sm text-gray-400 underline">
+            Resend
+          </button>
+        )}
+        {sendStatus === 'error' && (
+          <span className="text-red-600 text-sm">Error: {errorMsg}</span>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {plan.slots.map((s: PlanSlot, i: number) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">{SLOT_EMOJIS[s.slot]}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-teal-700 tracking-wide">{s.time}</span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {SLOT_LABELS[s.slot]}
+                    {s.options.length > 1 && <span className="text-teal-600 ml-1">(pick one)</span>}
+                  </span>
+                </div>
+                {s.options.length > 1 ? (
+                  s.options.map((opt, j) => (
+                    <p key={j} className="text-sm text-gray-700 mt-1">
+                      <span className="font-medium text-teal-700">Option {j + 1}:</span> {opt.label}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-700">{s.options[0].label}</p>
+                )}
+                {s.note && (
+                  <p className="text-xs text-gray-500 mt-2 whitespace-pre-line">{s.note}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
