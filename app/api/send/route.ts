@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generatePlan } from '@/lib/plan-generator';
 import { formatPlan, sendWhatsApp } from '@/lib/whatsapp';
+import { sendEmail } from '@/lib/email';
 import { getSendLog, upsertSendLog } from '@/lib/db';
 import { getTomorrowIST } from '@/lib/schedule';
 
@@ -18,10 +19,50 @@ export async function POST(req: NextRequest) {
 
   try {
     const plan = await generatePlan(planDate);
-    const message = formatPlan(plan);
-    await sendWhatsApp(message);
-    await upsertSendLog(planDate, 'success');
-    return NextResponse.json({ success: true, message: 'Sent successfully' });
+
+    const results: string[] = [];
+    const errors: string[] = [];
+
+    // Send WhatsApp (if configured)
+    if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_RECIPIENT_NUMBER) {
+      try {
+        const message = formatPlan(plan);
+        await sendWhatsApp(message);
+        results.push('whatsapp');
+      } catch (err) {
+        errors.push(`WhatsApp: ${String(err)}`);
+      }
+    }
+
+    // Send Email (if configured)
+    if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL_TO) {
+      try {
+        await sendEmail(plan);
+        results.push('email');
+      } catch (err) {
+        errors.push(`Email: ${String(err)}`);
+      }
+    }
+
+    if (results.length === 0 && errors.length === 0) {
+      // No channels configured
+      await upsertSendLog(planDate, 'failed', 'No notification channels configured');
+      return NextResponse.json({ success: false, message: 'No notification channels configured' }, { status: 500 });
+    }
+
+    if (results.length > 0) {
+      // At least one channel succeeded
+      await upsertSendLog(planDate, 'success');
+      return NextResponse.json({
+        success: true,
+        message: `Sent via: ${results.join(', ')}${errors.length > 0 ? ` (partial errors: ${errors.join('; ')})` : ''}`,
+      });
+    } else {
+      // All channels failed
+      const errorMsg = errors.join('; ');
+      await upsertSendLog(planDate, 'failed', errorMsg);
+      return NextResponse.json({ success: false, message: errorMsg }, { status: 500 });
+    }
   } catch (err) {
     const errorMsg = String(err);
     await upsertSendLog(planDate, 'failed', errorMsg);
