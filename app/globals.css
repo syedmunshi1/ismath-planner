@@ -25,3 +25,78 @@ body {
     text-wrap: balance;
   }
 }
+
+/* ── Print styles ─────────────────────────────────────────────── */
+@media print {
+  /* Hide nav, buttons, and non-content elements */
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove background colors — saves ink and avoids Chrome stripping them */
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-color: #ccc !important;
+  }
+
+  /* Full width — remove the max-w-2xl centering constraint */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Compact meal cards */
+  .space-y-3 > * + * {
+    margin-top: 4pt !important;
+  }
+
+  /* Tighter padding inside cards */
+  .rounded-xl {
+    border-radius: 4pt !important;
+    padding: 6pt 8pt !important;
+    border: 1pt solid #ddd !important;
+    margin-bottom: 4pt !important;
+    page-break-inside: avoid;
+  }
+
+  /* Keep slot time + label on one line */
+  .flex.items-start.gap-3 {
+    gap: 4pt !important;
+  }
+
+  /* Smaller text for notes */
+  .text-xs {
+    font-size: 9pt !important;
+  }
+
+  .text-sm {
+    font-size: 10pt !important;
+  }
+
+  /* Header stays compact */
+  .mb-6 {
+    margin-bottom: 8pt !important;
+  }
+
+  /* Avoid page breaks in the middle of a meal card */
+  .bg-white {
+    page-break-inside: avoid;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 10mm 8mm;
+    size: A4 portrait;
+  }
+}
