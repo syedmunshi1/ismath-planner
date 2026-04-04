@@ -22,6 +22,7 @@ const COMBO_LABELS: Record<number, string> = {
 };
 
 export default function HomePage() {
+  const [viewing, setViewing] = useState<'today' | 'tomorrow'>('tomorrow');
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'already_sent'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -31,16 +32,18 @@ export default function HomePage() {
     ? new URLSearchParams(window.location.search).get('pin') ?? ''
     : '';
 
-  useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().slice(0, 10);
+  const targetDate = viewing === 'tomorrow'
+    ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })()
+    : new Date().toISOString().slice(0, 10);
 
-    fetch(`/api/mealplan/${dateStr}?pin=${pin}`)
+  useEffect(() => {
+    setPlan(null);
+    setLoading(true);
+    fetch(`/api/mealplan/${targetDate}?pin=${pin}`)
       .then((r) => r.json())
       .then((data) => { setPlan(data); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [pin]);
+  }, [viewing, pin, targetDate]);
 
   const handleSend = async (force = false) => {
     setSendStatus('sending');
@@ -67,7 +70,28 @@ export default function HomePage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Tomorrow&apos;s Plan</h1>
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setViewing('today')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              viewing === 'today'
+                ? 'bg-teal-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setViewing('tomorrow')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              viewing === 'tomorrow'
+                ? 'bg-teal-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tomorrow
+          </button>
+        </div>
         <p className="text-gray-500 mt-1">
           {new Date(plan.date + 'T00:00:00').toLocaleDateString('en-IN', {
             weekday: 'long', day: 'numeric', month: 'long',
@@ -82,29 +106,31 @@ export default function HomePage() {
         )}
       </div>
 
-      <div className="mb-6 flex gap-3 items-center flex-wrap">
-        {sendStatus === 'sent' ? (
-          <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-medium">Sent ✓</span>
-        ) : sendStatus === 'already_sent' ? (
-          <span className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg">Already sent today</span>
-        ) : (
-          <button
-            onClick={() => handleSend(false)}
-            disabled={sendStatus === 'sending'}
-            className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50"
-          >
-            {sendStatus === 'sending' ? 'Sending...' : '📲 Send WhatsApp Now'}
-          </button>
-        )}
-        {(sendStatus === 'sent' || sendStatus === 'already_sent') && (
-          <button onClick={() => handleSend(true)} className="text-sm text-gray-400 underline">
-            Resend
-          </button>
-        )}
-        {sendStatus === 'error' && (
-          <span className="text-red-600 text-sm">Error: {errorMsg}</span>
-        )}
-      </div>
+      {viewing === 'tomorrow' && (
+        <div className="mb-6 flex gap-3 items-center flex-wrap">
+          {sendStatus === 'sent' ? (
+            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-medium">Sent ✓</span>
+          ) : sendStatus === 'already_sent' ? (
+            <span className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg">Already sent today</span>
+          ) : (
+            <button
+              onClick={() => handleSend(false)}
+              disabled={sendStatus === 'sending'}
+              className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50"
+            >
+              {sendStatus === 'sending' ? 'Sending...' : '📲 Send WhatsApp Now'}
+            </button>
+          )}
+          {(sendStatus === 'sent' || sendStatus === 'already_sent') && (
+            <button onClick={() => handleSend(true)} className="text-sm text-gray-400 underline">
+              Resend
+            </button>
+          )}
+          {sendStatus === 'error' && (
+            <span className="text-red-600 text-sm">Error: {errorMsg}</span>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3">
         {plan.slots.map((s: PlanSlot, i: number) => (

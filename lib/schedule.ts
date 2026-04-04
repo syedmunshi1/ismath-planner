@@ -31,12 +31,12 @@ function getDayOfWeek(dateStr: string): number {
  * Default combo for a given IST date string.
  * Mon/Tue/Thu/Sat = Combo 2 (Off AM + Skating PM)
  * Wed/Fri = Combo 4 (Gym AM + Skating PM)
- * Sun = Combo 3 (Full rest)
+ * Sun = Combo 1 (Gym AM + Off PM)
  */
 export function getDefaultCombo(dateStr: string): Combo {
   const day = getDayOfWeek(dateStr);
   // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  if (day === 0) return 3; // Sunday: Full rest
+  if (day === 0) return 1; // Sunday: Gym AM + Off PM
   if (day === 3 || day === 5) return 4; // Wed, Fri: Gym+Skating
   return 2; // Mon, Tue, Thu, Sat: Off+Skating
 }

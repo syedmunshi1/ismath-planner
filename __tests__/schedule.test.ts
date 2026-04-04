@@ -17,8 +17,8 @@ describe('getDefaultCombo', () => {
   it('returns Combo 4 for Friday', () => {
     expect(getDefaultCombo('2026-04-10')).toBe(4); // Friday
   });
-  it('returns Combo 3 for Sunday', () => {
-    expect(getDefaultCombo('2026-04-12')).toBe(3); // Sunday
+  it('returns Combo 1 for Sunday', () => {
+    expect(getDefaultCombo('2026-04-12')).toBe(1); // Sunday: Gym AM + Off PM
   });
   it('returns Combo 2 for Saturday', () => {
     expect(getDefaultCombo('2026-04-11')).toBe(2); // Saturday
