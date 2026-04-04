@@ -35,15 +35,15 @@ body {
     display: none !important;
   }
 
-  /* Remove background colors — saves ink and avoids Chrome stripping them */
+  /* Remove background colors */
   * {
     background: white !important;
     color: black !important;
     box-shadow: none !important;
-    border-color: #ccc !important;
+    border-color: #bbb !important;
   }
 
-  /* Full width — remove the max-w-2xl centering constraint */
+  /* Full width — remove centering constraint */
   main {
     max-width: 100% !important;
     padding: 0 !important;
@@ -53,50 +53,43 @@ body {
   body {
     padding: 0 !important;
     margin: 0 !important;
-    font-size: 11pt !important;
-  }
-
-  /* Compact meal cards */
-  .space-y-3 > * + * {
-    margin-top: 4pt !important;
-  }
-
-  /* Tighter padding inside cards */
-  .rounded-xl {
-    border-radius: 4pt !important;
-    padding: 6pt 8pt !important;
-    border: 1pt solid #ddd !important;
-    margin-bottom: 4pt !important;
-    page-break-inside: avoid;
-  }
-
-  /* Keep slot time + label on one line */
-  .flex.items-start.gap-3 {
-    gap: 4pt !important;
-  }
-
-  /* Smaller text for notes */
-  .text-xs {
     font-size: 9pt !important;
   }
 
-  .text-sm {
-    font-size: 10pt !important;
+  /* Force 2-column grid in print */
+  .grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4pt !important;
   }
+
+  /* Tighter card padding */
+  .rounded-xl {
+    border-radius: 3pt !important;
+    padding: 5pt 6pt !important;
+    border: 0.75pt solid #ccc !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Smaller text */
+  .text-xs { font-size: 7.5pt !important; }
+  .text-sm { font-size: 8.5pt !important; }
+  .text-lg { font-size: 10pt !important; }
+
+  /* Tighter gaps inside each card */
+  .gap-2 { gap: 3pt !important; }
+  .mb-1  { margin-bottom: 1pt !important; }
+  .mt-0\.5 { margin-top: 1pt !important; }
+  .mt-1\.5 { margin-top: 2pt !important; }
 
   /* Header stays compact */
-  .mb-6 {
-    margin-bottom: 8pt !important;
-  }
+  .mb-6 { margin-bottom: 6pt !important; }
+  .mb-3 { margin-bottom: 4pt !important; }
 
-  /* Avoid page breaks in the middle of a meal card */
-  .bg-white {
-    page-break-inside: avoid;
-  }
-
-  /* Page margins */
+  /* Page */
   @page {
-    margin: 10mm 8mm;
+    margin: 8mm 8mm;
     size: A4 portrait;
   }
 }

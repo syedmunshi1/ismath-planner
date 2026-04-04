@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a href="/weekplan" className="hover:opacity-80">📆 7-Day Plan</a>
           <a href="/history" className="hover:opacity-80">📋 History</a>
         </nav>
-        <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
+        <main className="max-w-5xl mx-auto px-6 py-6">{children}</main>
       </body>
     </html>
   );

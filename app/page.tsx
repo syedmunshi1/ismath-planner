@@ -128,22 +128,22 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {plan.slots.map((s: PlanSlot, i: number) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-xl">{SLOT_EMOJIS[s.slot]}</span>
-              <div className="flex-1">
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+            <div className="flex items-start gap-2">
+              <span className="text-lg leading-tight">{SLOT_EMOJIS[s.slot]}</span>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-bold text-teal-700 tracking-wide">{s.time}</span>
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {SLOT_LABELS[s.slot]}
-                    {s.options.length > 1 && <span className="text-teal-600 ml-1">(pick one)</span>}
+                    {s.options.length > 1 && <span className="text-teal-600 ml-1 normal-case">(pick one)</span>}
                   </span>
                 </div>
                 {s.options.length > 1 ? (
                   s.options.map((opt, j) => (
-                    <p key={j} className="text-sm text-gray-700 mt-1">
+                    <p key={j} className="text-sm text-gray-700 mt-0.5">
                       <span className="font-medium text-teal-700">Option {j + 1}:</span> {opt.label}
                     </p>
                   ))
@@ -151,7 +151,7 @@ export default function HomePage() {
                   <p className="text-sm text-gray-700">{s.options[0].label}</p>
                 )}
                 {s.note && (
-                  <p className="text-xs text-gray-500 mt-2 whitespace-pre-line">{s.note}</p>
+                  <p className="text-xs text-gray-500 mt-1.5 whitespace-pre-line">{s.note}</p>
                 )}
               </div>
             </div>
