@@ -108,27 +108,25 @@ export default function WeekPlanPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleSendWeek = async () => {
+  const handleSend = async () => {
     setSending(true);
     setSendResult('');
-    // Send each day sequentially
-    let sent = 0;
-    let failed = 0;
-    for (let pi = 0; pi < plans.length; pi++) {
-      try {
-        const res = await fetch(`/api/send?pin=${pin}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ force: true }),
-        });
-        if (res.ok) sent++;
-        else failed++;
-      } catch {
-        failed++;
+    try {
+      const res = await fetch(`/api/send?pin=${pin}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSendResult('✓ ' + (data.message ?? 'Sent'));
+      } else {
+        setSendResult('✗ ' + (data.message ?? 'Failed'));
       }
+    } catch {
+      setSendResult('✗ Network error');
     }
     setSending(false);
-    setSendResult(`Sent ${sent} plan(s)${failed > 0 ? `, ${failed} failed` : ''}`);
   };
 
   return (
@@ -154,15 +152,19 @@ export default function WeekPlanPage() {
       </div>
 
       {plans.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-4">
+        <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
           <button
-            onClick={handleSendWeek}
+            onClick={handleSend}
             disabled={sending}
             className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
           >
-            {sending ? 'Sending…' : '📧 Email Today\'s Plan Now'}
+            {sending ? 'Sending…' : '📧 Email Tomorrow\'s Plan Now'}
           </button>
-          {sendResult && <span className="text-sm text-gray-500">{sendResult}</span>}
+          {sendResult && (
+            <span className={`text-sm ${sendResult.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>
+              {sendResult}
+            </span>
+          )}
         </div>
       )}
     </div>
