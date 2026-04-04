@@ -65,10 +65,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function fixedSlot(slot: MealSlot, label: string, note?: string): PlanSlot {
+function fixedSlot(slot: MealSlot, label: string, note?: string, time?: string): PlanSlot {
   return {
     slot,
-    time: SLOT_TIMINGS[slot],
+    time: time ?? SLOT_TIMINGS[slot],
     options: [{ key: `fixed-${slot}`, slot, label, combos: [1,2,3,4], fixed: true }],
     note,
   };
@@ -84,14 +84,14 @@ function getFixedSlots(combo: Combo): PlanSlot[] {
     slots.push(fixedSlot('on_waking', 'Coconut/almond milk smoothie: 150ml milk + 1 banana + 1 tbsp PB + 2 dates + 2 figs + 4 tbsp oats + 5 cashews + 4 almonds + ½ tsp cardamom + pinch cinnamon + 1 tsp ghee + honey'));
   }
 
-  // DURING SESSION — gym
+  // DURING SESSION — gym (morning)
   if (combo === 1 || combo === 4) {
-    slots.push(fixedSlot('during_session', '🏋️ GYM — Sip A: Plain water 500ml | Sip B: Lime juice + pinch of salt + honey 750ml'));
+    slots.push(fixedSlot('during_session', '🏋️ GYM — Sip A: Plain water 500ml | Sip B: Lime juice + pinch of salt + honey 750ml', undefined, '06:30'));
   }
 
-  // POST SESSION — gym
+  // POST SESSION — gym (morning recovery)
   if (combo === 1 || combo === 4) {
-    slots.push(fixedSlot('post_session', '2 whole boiled eggs + 2 whites + 60g boiled sweet potato'));
+    slots.push(fixedSlot('post_session', '2 whole boiled eggs + 2 whites + 60g boiled sweet potato', undefined, '09:00'));
   }
 
   // POST LUNCH
@@ -183,9 +183,10 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
   if (combo === 2 || combo === 3) {
     slots.push(fixedSlot('breakfast', '2 whole eggs + 1 white (boiled) or omelette with minimal light olive oil'));
   } else {
+    // Combo 1 & 4: gym is in the morning — breakfast comes after post-gym recovery (09:00)
     const recent = await getRecentOptionKeys('breakfast', dateStr, 5);
     const picked = pickOptions(BREAKFAST_OPTIONS, recent, 1);
-    slots.push({ slot: 'breakfast', time: SLOT_TIMINGS['breakfast'], options: picked });
+    slots.push({ slot: 'breakfast', time: '10:00', options: picked });
   }
 
   // MID MORNING
