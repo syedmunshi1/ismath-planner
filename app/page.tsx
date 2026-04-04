@@ -28,10 +28,6 @@ export default function HomePage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const pin = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('pin') ?? ''
-    : '';
-
   const targetDate = viewing === 'tomorrow'
     ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })()
     : new Date().toISOString().slice(0, 10);
@@ -39,16 +35,16 @@ export default function HomePage() {
   useEffect(() => {
     setPlan(null);
     setLoading(true);
-    fetch(`/api/mealplan/${targetDate}?pin=${pin}`)
+    fetch(`/api/mealplan/${targetDate}`)
       .then((r) => r.json())
       .then((data) => { setPlan(data); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [viewing, pin, targetDate]);
+  }, [viewing, targetDate]);
 
   const handleSend = async (force = false) => {
     setSendStatus('sending');
     setErrorMsg('');
-    const res = await fetch(`/api/send?pin=${pin}`, {
+    const res = await fetch(`/api/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ force }),

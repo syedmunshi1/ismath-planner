@@ -87,14 +87,10 @@ export default function WeekPlanPage() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState('');
 
-  const pin = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('pin') ?? ''
-    : '';
-
   const load = () => {
     setLoading(true);
     setError('');
-    fetch(`/api/weekplan?pin=${pin}`)
+    fetch(`/api/weekplan`)
       .then(r => r.json())
       .then(data => {
         setPlans(data.plans ?? []);
@@ -112,7 +108,7 @@ export default function WeekPlanPage() {
     setSending(true);
     setSendResult('');
     try {
-      const res = await fetch(`/api/send?pin=${pin}`, {
+      const res = await fetch(`/api/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: true }),

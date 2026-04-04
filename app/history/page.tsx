@@ -5,12 +5,8 @@ import { MealHistoryRow } from '@/lib/types';
 export default function HistoryPage() {
   const [history, setHistory] = useState<MealHistoryRow[]>([]);
 
-  const pin = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('pin') ?? ''
-    : '';
-
   useEffect(() => {
-    fetch(`/api/history?pin=${pin}`)
+    fetch(`/api/history`)
       .then((r) => r.json())
       .then((data) => setHistory(data.history ?? []));
   }, []);

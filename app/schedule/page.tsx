@@ -13,14 +13,10 @@ export default function SchedulePage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const pin = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('pin') ?? ''
-    : '';
-
   const weekStart = new Date().toISOString().slice(0, 10);
 
   const load = () => {
-    fetch(`/api/schedule?week=${weekStart}&pin=${pin}`)
+    fetch(`/api/schedule?week=${weekStart}`)
       .then((r) => r.json())
       .then((data) => setDays(data.days ?? []));
   };
@@ -29,7 +25,7 @@ export default function SchedulePage() {
 
   const handleEdit = async (date: string, combo: Combo) => {
     setSaving(true);
-    await fetch(`/api/schedule?pin=${pin}`, {
+    await fetch(`/api/schedule`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, combo }),
@@ -41,7 +37,7 @@ export default function SchedulePage() {
 
   const handleReset = async () => {
     if (!confirm('Reset all overrides to defaults?')) return;
-    await fetch(`/api/schedule/reset?pin=${pin}`, { method: 'POST' });
+    await fetch(`/api/schedule/reset`, { method: 'POST' });
     load();
   };
 
