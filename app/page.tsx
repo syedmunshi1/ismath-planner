@@ -24,7 +24,8 @@ const COMBO_LABELS: Record<number, string> = {
 export default function HomePage() {
   const [viewing, setViewing] = useState<'today' | 'tomorrow'>('tomorrow');
   const [plan, setPlan] = useState<DailyPlan | null>(null);
-  const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'already_sent'>('idle');
+  const [waStatus, setWaStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
+  const [emailStatus, setEmailStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -41,22 +42,25 @@ export default function HomePage() {
       .catch(() => setLoading(false));
   }, [viewing, targetDate]);
 
-  const handleSend = async (force = false) => {
-    setSendStatus('sending');
+  const handleSend = async (channel: 'whatsapp' | 'email') => {
+    if (channel === 'whatsapp') setWaStatus('sending');
+    else setEmailStatus('sending');
     setErrorMsg('');
-    const res = await fetch(`/api/send`, {
+
+    const res = await fetch('/api/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force }),
+      body: JSON.stringify({ force: true, channel }),
     });
     const data = await res.json();
-    if (res.status === 409) {
-      setSendStatus('already_sent');
-    } else if (res.ok) {
-      setSendStatus('sent');
+
+    if (res.ok) {
+      if (channel === 'whatsapp') setWaStatus('sent');
+      else setEmailStatus('sent');
     } else {
-      setSendStatus('error');
-      setErrorMsg(data.message);
+      if (channel === 'whatsapp') setWaStatus('error');
+      else setEmailStatus('error');
+      setErrorMsg(data.message ?? 'Failed');
     }
   };
 
@@ -103,28 +107,24 @@ export default function HomePage() {
       </div>
 
       {viewing === 'tomorrow' && (
-        <div className="mb-6 flex gap-3 items-center flex-wrap">
-          {sendStatus === 'sent' ? (
-            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-lg font-medium">Sent ✓</span>
-          ) : sendStatus === 'already_sent' ? (
-            <span className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg">Already sent today</span>
-          ) : (
+        <div className="mb-6 no-print">
+          <div className="flex gap-3 flex-wrap items-center">
             <button
-              onClick={() => handleSend(false)}
-              disabled={sendStatus === 'sending'}
-              className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50"
+              onClick={() => handleSend('whatsapp')}
+              disabled={waStatus === 'sending'}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 text-sm"
             >
-              {sendStatus === 'sending' ? 'Sending...' : '📲 Send WhatsApp Now'}
+              {waStatus === 'sending' ? '⏳ Sending…' : waStatus === 'sent' ? '✓ WhatsApp Sent' : '💬 Send WhatsApp'}
             </button>
-          )}
-          {(sendStatus === 'sent' || sendStatus === 'already_sent') && (
-            <button onClick={() => handleSend(true)} className="text-sm text-gray-400 underline">
-              Resend
+            <button
+              onClick={() => handleSend('email')}
+              disabled={emailStatus === 'sending'}
+              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
+            >
+              {emailStatus === 'sending' ? '⏳ Sending…' : emailStatus === 'sent' ? '✓ Email Sent' : '📧 Send Email'}
             </button>
-          )}
-          {sendStatus === 'error' && (
-            <span className="text-red-600 text-sm">Error: {errorMsg}</span>
-          )}
+          </div>
+          {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
         </div>
       )}
 

@@ -84,8 +84,9 @@ export default function WeekPlanPage() {
   const [plans, setPlans] = useState<DailyPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState('');
+  const [waStatus, setWaStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
+  const [emailStatus, setEmailStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -104,25 +105,26 @@ export default function WeekPlanPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleSend = async () => {
-    setSending(true);
-    setSendResult('');
-    try {
-      const res = await fetch(`/api/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: true }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSendResult('✓ ' + (data.message ?? 'Sent'));
-      } else {
-        setSendResult('✗ ' + (data.message ?? 'Failed'));
-      }
-    } catch {
-      setSendResult('✗ Network error');
+  const handleSend = async (channel: 'whatsapp' | 'email') => {
+    if (channel === 'whatsapp') setWaStatus('sending');
+    else setEmailStatus('sending');
+    setErrorMsg('');
+
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: true, channel }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      if (channel === 'whatsapp') setWaStatus('sent');
+      else setEmailStatus('sent');
+    } else {
+      if (channel === 'whatsapp') setWaStatus('error');
+      else setEmailStatus('error');
+      setErrorMsg(data.message ?? 'Failed');
     }
-    setSending(false);
   };
 
   return (
@@ -148,19 +150,25 @@ export default function WeekPlanPage() {
       </div>
 
       {plans.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
-          <button
-            onClick={handleSend}
-            disabled={sending}
-            className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
-          >
-            {sending ? 'Sending…' : '📧 Email Tomorrow\'s Plan Now'}
-          </button>
-          {sendResult && (
-            <span className={`text-sm ${sendResult.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>
-              {sendResult}
-            </span>
-          )}
+        <div className="mt-6 pt-4 border-t border-gray-100 no-print">
+          <p className="text-xs text-gray-400 mb-3">Send tomorrow&apos;s plan:</p>
+          <div className="flex gap-3 flex-wrap items-center">
+            <button
+              onClick={() => handleSend('whatsapp')}
+              disabled={waStatus === 'sending'}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 text-sm"
+            >
+              {waStatus === 'sending' ? '⏳ Sending…' : waStatus === 'sent' ? '✓ WhatsApp Sent' : '💬 Send WhatsApp'}
+            </button>
+            <button
+              onClick={() => handleSend('email')}
+              disabled={emailStatus === 'sending'}
+              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
+            >
+              {emailStatus === 'sending' ? '⏳ Sending…' : emailStatus === 'sent' ? '✓ Email Sent' : '📧 Send Email'}
+            </button>
+          </div>
+          {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
         </div>
       )}
     </div>
