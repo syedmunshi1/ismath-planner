@@ -96,6 +96,27 @@ body {
   .mb-6 { margin-bottom: 6pt !important; }
   .mb-3 { margin-bottom: 3pt !important; }
 
+  /* ── 7-day plan print styles ── */
+
+  /* Show all collapsed plan cards */
+  .plan-card-body.hidden {
+    display: block !important;
+  }
+
+  /* Compact day cards */
+  .plan-card {
+    border-radius: 3pt !important;
+    margin-bottom: 6pt !important;
+    border: 0.75pt solid #bbb !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Slot rows inside day card */
+  .plan-card .flex.items-start.gap-3 {
+    padding: 2pt 6pt !important;
+  }
+
   /* Page */
   @page {
     margin: 8mm 8mm;

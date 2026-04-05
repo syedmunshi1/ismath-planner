@@ -10,6 +10,11 @@ export function toISTDate(date: Date = new Date()): string {
   return istDate.toISOString().slice(0, 10);
 }
 
+/** Get today's date in IST as 'YYYY-MM-DD' */
+export function getTodayIST(): string {
+  return toISTDate(new Date());
+}
+
 /** Get tomorrow's date in IST as 'YYYY-MM-DD' */
 export function getTomorrowIST(): string {
   return addDays(toISTDate(new Date()), 1);
