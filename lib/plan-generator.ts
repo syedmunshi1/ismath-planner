@@ -8,7 +8,7 @@ import {
   AVOCADO_OPTIONS,
 } from './meal-options';
 import { isSpleenDay, addDays } from './schedule';
-import { getRecentOptionKeys, saveMealHistory, getComboForDate } from './db';
+import { getRecentOptionKeys, getPicksForDate, saveMealHistory, getComboForDate } from './db';
 
 export const SLOT_TIMINGS: Record<string, string> = {
   on_waking:      '06:00',
@@ -63,6 +63,26 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/**
+ * Idempotent pick: if this date already has saved picks for the slot, reuse them.
+ * Otherwise run the rotation and return fresh picks (caller must still save them).
+ */
+async function getOrPick(
+  pool: MealOption[],
+  slot: string,
+  dateStr: string,
+  count: number,
+  historyDays = 5,
+): Promise<MealOption[]> {
+  const existing = await getPicksForDate(dateStr, slot);
+  if (existing.length > 0) {
+    const matched = pool.filter((o) => existing.includes(o.key));
+    if (matched.length >= 1) return matched.slice(0, count);
+  }
+  const recent = await getRecentOptionKeys(slot, dateStr, historyDays);
+  return pickOptions(pool, recent, count);
 }
 
 function fixedSlot(slot: MealSlot, label: string, note?: string, time?: string): PlanSlot {
@@ -171,8 +191,7 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
       { key: 'waking-sago-shake', slot: 'on_waking', label: 'Milkshake: 5 tbsp cooked sago + 1 banana + 1 tsp chia + 1 tsp flax + 2 dates + 2 figs + 50g Greek yoghurt + milk + 1 tbsp honey', combos: [2] },
       { key: 'waking-dalia-shake', slot: 'on_waking', label: 'Milkshake: 5 tbsp cooked dalia + 1 banana + 1 tsp chia + 1 tsp flax + 2 dates + 2 figs + 50g Greek yoghurt + milk + 1 tbsp honey', combos: [2] },
     ];
-    const recent = await getRecentOptionKeys('on_waking', dateStr, 5);
-    const picked = pickOptions(milkshakeOptions, recent, 1);
+    const picked = await getOrPick(milkshakeOptions, 'on_waking', dateStr, 1);
     slots.push({ slot: 'on_waking', time: SLOT_TIMINGS['on_waking'], options: picked });
   } else {
     const fixedOnWaking = getFixedSlots(combo).find((s) => s.slot === 'on_waking');
@@ -184,15 +203,13 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
     slots.push(fixedSlot('breakfast', '2 whole eggs + 1 white (boiled) or omelette with minimal light olive oil'));
   } else {
     // Combo 1 & 4: gym is in the morning — breakfast comes after post-gym recovery (09:00)
-    const recent = await getRecentOptionKeys('breakfast', dateStr, 5);
-    const picked = pickOptions(BREAKFAST_OPTIONS, recent, 1);
+    const picked = await getOrPick(BREAKFAST_OPTIONS, 'breakfast', dateStr, 1);
     slots.push({ slot: 'breakfast', time: '10:00', options: picked });
   }
 
   // MID MORNING
   if (combo === 1) {
-    const recent = await getRecentOptionKeys('mid_morning', dateStr, 5);
-    const picked = pickOptions(ANTI_INFLAMMATORY_OPTIONS, recent, 1);
+    const picked = await getOrPick(ANTI_INFLAMMATORY_OPTIONS, 'mid_morning', dateStr, 1);
     slots.push({ slot: 'mid_morning', time: SLOT_TIMINGS['mid_morning'], options: picked, note: ALIV_PREFIX });
   } else if (combo === 2) {
     slots.push(fixedSlot('mid_morning', 'Boiled sweet potato sandwich 1 set OR sweet potato tikki 3-4 pieces + 200ml tender coconut water with salt', ALIV_PREFIX));
@@ -203,8 +220,7 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
   }
 
   // LUNCH (2 rotated)
-  const recentLunch = await getRecentOptionKeys('lunch', dateStr, 5);
-  const lunchOpts = pickOptions(LUNCH_OPTIONS, recentLunch, 2);
+  const lunchOpts = await getOrPick(LUNCH_OPTIONS, 'lunch', dateStr, 2);
   slots.push({ slot: 'lunch', time: SLOT_TIMINGS['lunch'], options: lunchOpts, note: '✅ Both: compulsory 100g keerai + lime squeeze + 1 tsp ghee' });
 
   // POST LUNCH
@@ -213,8 +229,7 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
 
   // PRE SESSION (Combo 2 & 4)
   if (combo === 2 || combo === 4) {
-    const recentPre = await getRecentOptionKeys('pre_session', dateStr, 5);
-    const preOpts = pickOptions(PRE_SESSION_OPTIONS, recentPre, 2);
+    const preOpts = await getOrPick(PRE_SESSION_OPTIONS, 'pre_session', dateStr, 2);
     slots.push({ slot: 'pre_session', time: SLOT_TIMINGS['pre_session'], options: preOpts });
   }
 
@@ -242,14 +257,11 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
 
   let dinnerOpts: MealOption[];
   if (spleen) {
-    const recentSpleen = await getRecentOptionKeys('spleen', dateStr, 14);
-    const spleenPick = pickOptions(spleenOptions, recentSpleen, 1);
-    const recentDinner = await getRecentOptionKeys('dinner', dateStr, 5);
-    const normalPick = pickOptions(normalDinner, recentDinner, 1);
+    const spleenPick = await getOrPick(spleenOptions, 'spleen', dateStr, 1, 14);
+    const normalPick = await getOrPick(normalDinner, 'dinner', dateStr, 1);
     dinnerOpts = [spleenPick[0], normalPick[0]];
   } else {
-    const recentDinner = await getRecentOptionKeys('dinner', dateStr, 5);
-    dinnerOpts = pickOptions(normalDinner, recentDinner, 2);
+    dinnerOpts = await getOrPick(normalDinner, 'dinner', dateStr, 2);
   }
   slots.push({ slot: 'dinner', time: SLOT_TIMINGS['dinner'], options: dinnerOpts });
 
@@ -258,9 +270,8 @@ export async function generatePlan(dateStr: string): Promise<DailyPlan> {
   if (bedtime) slots.push(bedtime);
 
   // AVOCADO add-on
-  const recentAvo = await getRecentOptionKeys('avocado', dateStr, 5);
   const validAvo = AVOCADO_OPTIONS.filter((o) => o.combos.includes(combo));
-  const avoPick = pickOptions(validAvo, recentAvo, 1)[0];
+  const avoPick = (await getOrPick(validAvo, 'avocado', dateStr, 1))[0];
   const avoSlot = slots.find((s) => s.slot === avoPick.slot);
   if (avoSlot) {
     avoSlot.note = avoSlot.note ? avoSlot.note + '\n' + avoPick.label : avoPick.label;

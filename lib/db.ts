@@ -51,12 +51,31 @@ export async function getMealHistoryForSlot(slot: string, sinceDate: string): Pr
 }
 
 export async function getRecentOptionKeys(slot: string, beforeDate: string, days: number): Promise<string[]> {
+  // Only count the first 2 option_keys per date (insertion order) to prevent
+  // repeated page loads from inflating the "used" set with all 7 options.
   const result = await sql`
-    SELECT DISTINCT option_key FROM meal_history
-    WHERE slot = ${slot}
-      AND date < ${beforeDate}::date
-      AND date >= (${beforeDate}::date - INTERVAL '1 day' * ${days})
-    ORDER BY option_key
+    SELECT DISTINCT option_key FROM (
+      SELECT option_key,
+             ROW_NUMBER() OVER (PARTITION BY date ORDER BY id ASC) AS rn
+      FROM meal_history
+      WHERE slot = ${slot}
+        AND date < ${beforeDate}::date
+        AND date >= (${beforeDate}::date - INTERVAL '1 day' * ${days})
+    ) t WHERE rn <= 2
+  `;
+  return result.rows.map((r) => r.option_key);
+}
+
+export async function getPicksForDate(dateStr: string, slot: string): Promise<string[]> {
+  // Return the first 2 options saved for this exact date+slot (by insertion order).
+  // Allows generatePlan to be idempotent: reuse saved picks instead of re-rolling.
+  const result = await sql`
+    SELECT option_key FROM (
+      SELECT option_key,
+             ROW_NUMBER() OVER (ORDER BY id ASC) AS rn
+      FROM meal_history
+      WHERE date = ${dateStr}::date AND slot = ${slot}
+    ) t WHERE rn <= 2
   `;
   return result.rows.map((r) => r.option_key);
 }
