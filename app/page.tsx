@@ -106,27 +106,35 @@ export default function HomePage() {
         )}
       </div>
 
-      {viewing === 'tomorrow' && (
-        <div className="mb-6 no-print">
-          <div className="flex gap-3 flex-wrap items-center">
-            <button
-              onClick={() => handleSend('whatsapp')}
-              disabled={waStatus === 'sending'}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 text-sm"
-            >
-              {waStatus === 'sending' ? '⏳ Sending…' : waStatus === 'sent' ? '✓ WhatsApp Sent' : '💬 Send WhatsApp'}
-            </button>
-            <button
-              onClick={() => handleSend('email')}
-              disabled={emailStatus === 'sending'}
-              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
-            >
-              {emailStatus === 'sending' ? '⏳ Sending…' : emailStatus === 'sent' ? '✓ Email Sent' : '📧 Send Email'}
-            </button>
-          </div>
-          {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
+      <div className="mb-6 no-print">
+        <div className="flex gap-3 flex-wrap items-center">
+          {viewing === 'tomorrow' && (
+            <>
+              <button
+                onClick={() => handleSend('whatsapp')}
+                disabled={waStatus === 'sending'}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 text-sm"
+              >
+                {waStatus === 'sending' ? '⏳ Sending…' : waStatus === 'sent' ? '✓ WhatsApp Sent' : '💬 Send WhatsApp'}
+              </button>
+              <button
+                onClick={() => handleSend('email')}
+                disabled={emailStatus === 'sending'}
+                className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 text-sm"
+              >
+                {emailStatus === 'sending' ? '⏳ Sending…' : emailStatus === 'sent' ? '✓ Email Sent' : '📧 Send Email'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 text-sm"
+          >
+            ⬇ Save as PDF
+          </button>
         </div>
-      )}
+        {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
+      </div>
 
       <div className="space-y-2">
         {plan.slots.map((s: PlanSlot, i: number) => (
