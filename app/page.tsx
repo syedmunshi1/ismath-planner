@@ -22,10 +22,11 @@ const COMBO_LABELS: Record<number, string> = {
 };
 
 export default function HomePage() {
-  const [viewing, setViewing] = useState<'today' | 'tomorrow'>('tomorrow');
+  const [viewing, setViewing] = useState<'today' | 'tomorrow'>('today');
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [waStatus, setWaStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
   const [emailStatus, setEmailStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle');
+  const [regenStatus, setRegenStatus] = useState<'idle'|'running'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +42,19 @@ export default function HomePage() {
       .then((data) => { setPlan(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [viewing, targetDate]);
+
+  const handleRegenerate = async () => {
+    setRegenStatus('running');
+    setErrorMsg('');
+    const res = await fetch(`/api/mealplan/${targetDate}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) {
+      setPlan(data);
+    } else {
+      setErrorMsg(data.error ?? 'Failed to regenerate');
+    }
+    setRegenStatus('idle');
+  };
 
   const handleSend = async (channel: 'whatsapp' | 'email') => {
     if (channel === 'whatsapp') setWaStatus('sending');
@@ -126,6 +140,13 @@ export default function HomePage() {
               </button>
             </>
           )}
+          <button
+            onClick={handleRegenerate}
+            disabled={regenStatus === 'running'}
+            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 text-sm"
+          >
+            {regenStatus === 'running' ? '⏳ Regenerating…' : '🔄 Regenerate Plan'}
+          </button>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 text-sm"
